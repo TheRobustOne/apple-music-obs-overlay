@@ -19,7 +19,18 @@ web-based settings page — no code editing required.
 
 Everything runs locally on your machine. Nothing is uploaded anywhere.
 
-## Requirements
+## Quick start (no Python required)
+
+Download `AppleMusicOverlay.exe` from the
+[latest release](https://github.com/dougcoleman19/apple-music-obs-overlay/releases/latest)
+and double-click it. A console window opens showing the overlay URL — leave
+it running while you stream, and close it to stop the overlay. Then skip to
+[Add it to OBS](#add-it-to-obs) below.
+
+Windows SmartScreen may warn about an unrecognized app the first time,
+since the exe isn't code-signed — click **More info -> Run anyway**.
+
+## Requirements (running from source)
 
 - Windows 10/11
 - [Python 3.9+](https://www.python.org/downloads/) (3.9–3.12 recommended —
@@ -27,7 +38,7 @@ Everything runs locally on your machine. Nothing is uploaded anywhere.
 - Apple Music for Windows
 - OBS Studio
 
-## Setup
+## Setup (running from source)
 
 1. Install Python from [python.org](https://www.python.org/downloads/) if
    you don't already have it. During install, check **"Add python.exe to
