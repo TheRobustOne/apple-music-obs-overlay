@@ -200,11 +200,11 @@ OVERLAY_HTML = """<!DOCTYPE html>
     align-items: center;
     gap: 14px;
     padding: 12px 18px;
-    width: fit-content;
+    box-sizing: border-box;
     opacity: 0;
     transform: translateY(8px);
     transition: opacity 0.4s ease, transform 0.4s ease,
-      background-color 0.2s ease, border-radius 0.2s ease, max-width 0.2s ease;
+      background-color 0.2s ease, border-radius 0.2s ease, width 0.2s ease;
   }
   #card.visible { opacity: 1; transform: translateY(0); }
   #art {
@@ -213,7 +213,7 @@ OVERLAY_HTML = """<!DOCTYPE html>
     background: #333 center/cover no-repeat;
     flex-shrink: 0;
   }
-  #text { min-width: 0; }
+  #text { min-width: 0; flex: 1 1 auto; }
   #title {
     font-size: 16px; font-weight: 600;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -260,7 +260,7 @@ function applyConfig(cfg) {
   const card = document.getElementById('card');
   card.style.backgroundColor = hexToRgba(cfg.bg_color, cfg.bg_opacity);
   card.style.borderRadius = cfg.corner_radius + 'px';
-  card.style.maxWidth = cfg.card_max_width + 'px';
+  card.style.width = cfg.card_max_width + 'px';
   card.style.fontFamily = cfg.font_family;
   document.getElementById('title').style.color = cfg.title_color;
   document.getElementById('artist').style.color = cfg.artist_color;
@@ -387,7 +387,7 @@ SETTINGS_HTML = """<!DOCTYPE html>
       <label for="corner_radius">Corner radius (px)</label>
       <input type="number" id="corner_radius" name="corner_radius" min="0" max="60">
 
-      <label for="card_max_width">Max width (px)</label>
+      <label for="card_max_width">Width (px)</label>
       <input type="number" id="card_max_width" name="card_max_width" min="200" max="1000">
 
       <label for="scale">Overlay size</label>
