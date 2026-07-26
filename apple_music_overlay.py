@@ -144,16 +144,7 @@ def pick_session(manager):
         return None
 
 
-# If a session reports PLAYING but its position hasn't moved for this many
-# consecutive polls, treat it as a stale/zombie SMTC session (Windows can
-# leave one behind after Apple Music closes non-cleanly) and hide it.
-STALL_LIMIT = 5
-_stall_position = None
-_stall_count = 0
-
-
 async def poll_loop():
-    global _stall_position, _stall_count
     manager = await MediaManager.request_async()
     while True:
         try:
@@ -163,33 +154,21 @@ async def poll_loop():
                 timeline = session.get_timeline_properties()
                 playback = session.get_playback_info()
                 artwork = await read_thumbnail(info.thumbnail)
-                position = timeline.position.total_seconds()
-                is_playing = playback.playback_status == PlaybackStatus.PLAYING
-
-                if is_playing and _stall_position is not None and abs(position - _stall_position) < 0.05:
-                    _stall_count += 1
-                else:
-                    _stall_count = 0
-                _stall_position = position
 
                 with STATE_LOCK:
                     STATE["title"] = info.title or ""
                     STATE["artist"] = info.artist or ""
                     STATE["album"] = info.album_title or ""
                     STATE["artwork"] = artwork
-                    STATE["position"] = position
+                    STATE["position"] = timeline.position.total_seconds()
                     STATE["duration"] = timeline.end_time.total_seconds()
-                    STATE["playing"] = is_playing and _stall_count < STALL_LIMIT
+                    STATE["playing"] = playback.playback_status == PlaybackStatus.PLAYING
             else:
-                _stall_position = None
-                _stall_count = 0
                 with STATE_LOCK:
                     STATE["title"] = ""
                     STATE["playing"] = False
         except Exception as e:
             print(f"[poll error] {e}")
-            _stall_position = None
-            _stall_count = 0
             with STATE_LOCK:
                 STATE["title"] = ""
                 STATE["playing"] = False
