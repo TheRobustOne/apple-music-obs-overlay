@@ -77,7 +77,8 @@ use Python 3.12 or earlier, where a prebuilt wheel installs instantly.
 
 1. In OBS, click **+** under Sources -> **Browser**.
 2. Set the URL to `http://localhost:8765/overlay.html`.
-3. Set Width/Height to roughly `500 x 150` (adjust to taste).
+3. Set Width/Height to roughly `600 x 200` (adjust to taste — see
+   "Overlay size" below if it looks too small or gets cut off).
 4. **Uncheck** "Shutdown source when not visible" so it keeps polling in
    the background.
 5. Play something in Apple Music. If nothing appears, hit pause/play once —
@@ -94,8 +95,12 @@ running. You can change:
 - Font
 - Corner radius / rounding
 - Max card width
+- Overlay size (scales everything — art, text, progress bar — up or down)
 - Show/hide album art
 - Show/hide the progress bar
+
+If you increase "Overlay size" and it gets clipped in OBS, increase the
+Browser Source's Width/Height too (right-click the source -> Properties).
 
 A live preview (showing your actual current track) updates as you save.
 Settings are written to `overlay_config.json` next to the script and are

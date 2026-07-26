@@ -85,6 +85,7 @@ DEFAULT_CONFIG = {
     "font_family": "Segoe UI, Helvetica, Arial, sans-serif",
     "corner_radius": 14,
     "card_max_width": 460,
+    "scale": 1.2,
     "show_artwork": True,
     "show_progress_bar": True,
 }
@@ -143,7 +144,16 @@ def pick_session(manager):
         return None
 
 
+# If a session reports PLAYING but its position hasn't moved for this many
+# consecutive polls, treat it as a stale/zombie SMTC session (Windows can
+# leave one behind after Apple Music closes non-cleanly) and hide it.
+STALL_LIMIT = 5
+_stall_position = None
+_stall_count = 0
+
+
 async def poll_loop():
+    global _stall_position, _stall_count
     manager = await MediaManager.request_async()
     while True:
         try:
@@ -153,21 +163,36 @@ async def poll_loop():
                 timeline = session.get_timeline_properties()
                 playback = session.get_playback_info()
                 artwork = await read_thumbnail(info.thumbnail)
+                position = timeline.position.total_seconds()
+                is_playing = playback.playback_status == PlaybackStatus.PLAYING
+
+                if is_playing and _stall_position is not None and abs(position - _stall_position) < 0.05:
+                    _stall_count += 1
+                else:
+                    _stall_count = 0
+                _stall_position = position
 
                 with STATE_LOCK:
                     STATE["title"] = info.title or ""
                     STATE["artist"] = info.artist or ""
                     STATE["album"] = info.album_title or ""
                     STATE["artwork"] = artwork
-                    STATE["position"] = timeline.position.total_seconds()
+                    STATE["position"] = position
                     STATE["duration"] = timeline.end_time.total_seconds()
-                    STATE["playing"] = playback.playback_status == PlaybackStatus.PLAYING
+                    STATE["playing"] = is_playing and _stall_count < STALL_LIMIT
             else:
+                _stall_position = None
+                _stall_count = 0
                 with STATE_LOCK:
                     STATE["title"] = ""
                     STATE["playing"] = False
         except Exception as e:
             print(f"[poll error] {e}")
+            _stall_position = None
+            _stall_count = 0
+            with STATE_LOCK:
+                STATE["title"] = ""
+                STATE["playing"] = False
         await asyncio.sleep(POLL_SECONDS)
 
 
@@ -187,6 +212,9 @@ OVERLAY_HTML = """<!DOCTYPE html>
   html, body {
     margin: 0; padding: 0; background: transparent;
     overflow: hidden;
+  }
+  #stage {
+    transform-origin: left center;
   }
   #card {
     display: flex;
@@ -228,12 +256,14 @@ OVERLAY_HTML = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <div id="card">
-    <div id="art"></div>
-    <div id="text">
-      <div id="title"></div>
-      <div id="artist"></div>
-      <div id="bar-bg"><div id="bar-fill"></div></div>
+  <div id="stage">
+    <div id="card">
+      <div id="art"></div>
+      <div id="text">
+        <div id="title"></div>
+        <div id="artist"></div>
+        <div id="bar-bg"><div id="bar-fill"></div></div>
+      </div>
     </div>
   </div>
 
@@ -247,6 +277,7 @@ function hexToRgba(hex, alpha) {
 }
 
 function applyConfig(cfg) {
+  document.getElementById('stage').style.transform = `scale(${cfg.scale})`;
   const card = document.getElementById('card');
   card.style.backgroundColor = hexToRgba(cfg.bg_color, cfg.bg_opacity);
   card.style.borderRadius = cfg.corner_radius + 'px';
@@ -352,7 +383,8 @@ SETTINGS_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <h1>Now Playing Overlay Settings</h1>
-  <p class="hint">Changes save to overlay_config.json and apply to the OBS overlay automatically (no restart needed).</p>
+  <p class="hint">Changes save to overlay_config.json and apply to the OBS overlay automatically (no restart needed).
+  If a larger "Overlay size" gets cut off in OBS, increase the Browser Source's Width/Height in its Properties (right-click the source -> Properties).</p>
   <div class="layout">
     <form id="cfg-form">
       <label for="bg_color">Background color</label>
@@ -378,6 +410,9 @@ SETTINGS_HTML = """<!DOCTYPE html>
 
       <label for="card_max_width">Max width (px)</label>
       <input type="number" id="card_max_width" name="card_max_width" min="200" max="1000">
+
+      <label for="scale">Overlay size</label>
+      <input type="range" id="scale" name="scale" min="0.5" max="2.5" step="0.05">
 
       <label for="show_artwork">Show album art</label>
       <input type="checkbox" id="show_artwork" name="show_artwork">
@@ -412,6 +447,7 @@ function fill(cfg) {
   form.font_family.value = cfg.font_family;
   form.corner_radius.value = cfg.corner_radius;
   form.card_max_width.value = cfg.card_max_width;
+  form.scale.value = cfg.scale;
   form.show_artwork.checked = cfg.show_artwork;
   form.show_progress_bar.checked = cfg.show_progress_bar;
 }
@@ -426,6 +462,7 @@ function readForm() {
     font_family: form.font_family.value,
     corner_radius: parseInt(form.corner_radius.value, 10),
     card_max_width: parseInt(form.card_max_width.value, 10),
+    scale: parseFloat(form.scale.value),
     show_artwork: form.show_artwork.checked,
     show_progress_bar: form.show_progress_bar.checked,
   };
