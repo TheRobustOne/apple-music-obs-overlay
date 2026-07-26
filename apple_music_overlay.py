@@ -39,6 +39,7 @@ Notes:
 import asyncio
 import base64
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -58,7 +59,11 @@ except ImportError as e:
 HOST = "localhost"
 PORT = 8765
 POLL_SECONDS = 1.0
-CONFIG_PATH = Path(__file__).resolve().parent / "overlay_config.json"
+if getattr(sys, "frozen", False):
+    APP_DIR = Path(sys.executable).resolve().parent
+else:
+    APP_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = APP_DIR / "overlay_config.json"
 
 STATE = {
     "title": "",
